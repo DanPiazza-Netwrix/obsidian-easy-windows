@@ -1,0 +1,19 @@
+#!/bin/zsh
+# Quick Capture — creates a timestamped .md in the drop folder and opens in configured editor
+
+CONFIG_FILE="$HOME/.config/note-sorter/config.json"
+
+# Read drop_dir and editor from config, with defaults
+DROP_DIR=$(jq -r '.drop_dir // "~/obsidian-drop"' "$CONFIG_FILE" | sed "s|^~|$HOME|")
+EDITOR_CMD=$(jq -r '.editor // "open -t"' "$CONFIG_FILE")
+
+mkdir -p "$DROP_DIR"
+
+TIMESTAMP=$(date +"%Y-%m-%d-%H%M%S")
+FILENAME="${DROP_DIR}/${TIMESTAMP}.md"
+
+# Create the file with a heading placeholder
+printf "# \n\n" > "$FILENAME"
+
+# Open in the configured editor
+eval "$EDITOR_CMD" "\"$FILENAME\""
