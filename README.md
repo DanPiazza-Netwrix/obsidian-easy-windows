@@ -1,120 +1,158 @@
-# Obsidian Easy
+# Obsidian Easy for Windows
 
-A smart note-filing system for [Obsidian](https://obsidian.md). Drop markdown notes into a folder, and they automatically get filed into the right place in your vault with internal wikilinks added.
+A smart note-filing system for [Obsidian](https://obsidian.md) on Windows. Drop markdown notes into a folder, and they automatically get filed into the right place in your vault with internal wikilinks added.
 
 Powered by the Claude API for intelligent routing decisions.
 
+> **Note**: This is the Windows-only version using PowerShell. For the original macOS/Python version, see [obsidian-easy](https://github.com/gman247/obsidian-easy).
+
 ## How It Works
 
-1. **Capture**: Click the Note Capture app (or run `note-capture` from the terminal). A new markdown file opens in your editor.
+1. **Capture**: Run `note-capture.ps1` to create a new markdown file in your drop folder and open it in your editor.
 2. **Write**: Jot down your note, save, and close.
-3. **Auto-file**: A background job picks up the note every few minutes, analyzes it with Claude, and:
+3. **Auto-file**: Every 5 minutes, a Windows Task Scheduler job picks up the note, analyzes it with Claude, and:
    - Files it into the correct folder in your Obsidian vault (or appends it to an existing note)
    - Adds `[[wikilinks]]` to semantically related notes
    - Adds YAML frontmatter (`created`, `modified`, `filed_by`)
-4. **Backup**: The original file is moved to a `Filed/` subfolder as a backup.
-
-## Features
-
-- **Smart routing** — Claude analyzes your note content and your filing preferences to decide where each note belongs
-- **Wikilink detection** — Automatically links to related people, projects, and topics in your vault
-- **Offline resilience** — If there's no internet, the script exits gracefully and retries on the next run
-- **Configurable editor** — Use Sublime Text, VS Code, vim, or any editor you prefer
-- **Dry-run mode** — Test what the sorter would do without touching your vault
-- **Editable filing preferences** — A plain markdown file describes how you like things organized
-- **Automatic scheduling** — Runs every 5 minutes via macOS launchd, or immediately when a new file appears
+4. **Backup**: The original file is moved to a `Filed\` subfolder as a backup.
 
 ## Requirements
 
-- **macOS** (uses launchd for scheduling; adaptable to Linux with cron/systemd)
-- **Python 3.12+**
-- **[uv](https://docs.astral.sh/uv/)** — Python package manager (handles dependencies automatically)
+- **Windows 10 or later** (with PowerShell 5.1+, included by default)
 - **[Anthropic API key](https://console.anthropic.com/)** — for Claude API access
-- **jq** — for the capture script to read config (`brew install jq`)
+- **Administrator privileges** — to set up the scheduled task
 
 ## Installation
 
-### 1. Clone this repo
+### 1. Clone or download this repository
 
-```bash
-git clone https://github.com/gman247/obsidian-easy.git
-cd obsidian-easy
+```powershell
+git clone https://github.com/DanPiazza-Netwrix/obsidian-easy-windows.git
+cd obsidian-easy-windows
 ```
 
 ### 2. Create directories
 
-```bash
-mkdir -p ~/.config/note-sorter ~/obsidian-drop/Filed ~/.local/bin
+```powershell
+# Create config and drop directories
+New-Item -ItemType Directory -Path "$env:APPDATA\note-sorter" -Force
+New-Item -ItemType Directory -Path "$env:USERPROFILE\obsidian-drop\Filed" -Force
 ```
 
-### 3. Install the scripts
+### 3. Copy scripts to a convenient location
 
-```bash
-cp note-sorter ~/.local/bin/note-sorter
-cp note-capture ~/.local/bin/note-capture
-chmod +x ~/.local/bin/note-sorter ~/.local/bin/note-capture
+```powershell
+# Option A: Copy to AppData (recommended)
+Copy-Item note-sorter.ps1 -Destination "$env:APPDATA\note-sorter\"
+Copy-Item note-capture.ps1 -Destination "$env:APPDATA\note-sorter\"
+Copy-Item Setup-NotesorterSchedule.ps1 -Destination "$env:APPDATA\note-sorter\"
+Copy-Item Create-DesktopShortcuts.ps1 -Destination "$env:APPDATA\note-sorter\"
+
+# Option B: Copy to a custom location (e.g., C:\Tools\note-sorter)
+New-Item -ItemType Directory -Path "C:\Tools\note-sorter" -Force
+Copy-Item note-sorter.ps1, note-capture.ps1, Setup-NotesorterSchedule.ps1, Create-DesktopShortcuts.ps1 -Destination "C:\Tools\note-sorter\"
 ```
 
 ### 4. Configure
 
-```bash
-# Create your config from the example
-cp config.example.json ~/.config/note-sorter/config.json
+```powershell
+# Copy the example config
+Copy-Item config.example.json -Destination "$env:APPDATA\note-sorter\config.json"
 
-# Edit it — set your vault_path and editor at minimum
-nano ~/.config/note-sorter/config.json
-
-# Copy the filing preferences (edit to match your vault structure)
-cp filing-prompt.md ~/.config/note-sorter/filing-prompt.md
+# Edit it with your favorite editor (replace notepad with your editor)
+notepad "$env:APPDATA\note-sorter\config.json"
 ```
+
+**Required settings:**
+- `vault_path`: Absolute path to your Obsidian vault (e.g., `C:\Users\YourName\Documents\My Obsidian Vault`)
+- `editor`: Your preferred editor (e.g., `code`, `notepad++`, `vim`)
+
+**Optional settings:**
+- `drop_dir`: Where to watch for new notes (default: `%USERPROFILE%\obsidian-drop`)
+- `filed_dir`: Where to backup processed notes (default: `%USERPROFILE%\obsidian-drop\Filed`)
+- `model`: Claude model to use (default: `claude-sonnet-4-20250514`)
+- `log_level`: Logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`)
 
 ### 5. Set your API key
 
-```bash
-# Option A: Add to your .env file (recommended for launchd)
-echo "ANTHROPIC_API_KEY=sk-ant-..." > ~/.config/note-sorter/.env
+```powershell
+# Option A: Set as environment variable (recommended)
+[Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", "sk-ant-...", "User")
 
-# Option B: Export in your shell profile
-echo 'export ANTHROPIC_API_KEY="sk-ant-..."' >> ~/.zprofile
+# Then restart PowerShell for the change to take effect
+
+# Option B: Create a .env file in the config directory
+# This is useful for Task Scheduler context
+"ANTHROPIC_API_KEY=sk-ant-..." | Set-Content "$env:APPDATA\note-sorter\.env"
 ```
 
-### 6. Test it
+### 6. Copy filing preferences
 
-```bash
+```powershell
+Copy-Item filing-prompt.md -Destination "$env:APPDATA\note-sorter\"
+
+# Edit to match your vault structure
+notepad "$env:APPDATA\note-sorter\filing-prompt.md"
+```
+
+### 7. Test it
+
+```powershell
 # Create a test note
-echo "# Test note about strategy and planning" > ~/obsidian-drop/test.md
+"# Test note about strategy and planning" | Set-Content "$env:USERPROFILE\obsidian-drop\test.md"
 
 # Wait a few seconds for the settle time, then run
-sleep 6 && ~/.local/bin/note-sorter
+Start-Sleep -Seconds 6
+& "$env:APPDATA\note-sorter\note-sorter.ps1"
 
 # Check the log
-cat ~/.config/note-sorter/note-sorter.log
+Get-Content "$env:APPDATA\note-sorter\note-sorter.log" -Tail 20
 ```
 
 Start with `"dry_run": true` in your config to see what the sorter would do without making changes.
 
-### 7. Set up the scheduled job
+### 8. Set up the scheduled task
 
-Edit `com.note-sorter.plist` and replace all instances of `YOUR_USERNAME` with your macOS username, then:
+**Important: This requires administrator privileges.**
 
-```bash
-cp com.note-sorter.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.note-sorter.plist
-
-# Verify it's loaded
-launchctl list | grep note-sorter
+```powershell
+# Run PowerShell as Administrator, then:
+& "$env:APPDATA\note-sorter\Setup-NotesorterSchedule.ps1"
 ```
 
-### 8. Create the Dock shortcut (optional)
+This will create a Windows Task Scheduler task that runs `note-sorter.ps1` every 5 minutes.
 
-Create a macOS app that calls `note-capture` for one-click capture:
-
-```bash
-osacompile -o ~/Applications/"Note Capture.app" -e '
-do shell script "~/.local/bin/note-capture"'
+**To verify the task was created:**
+```powershell
+Get-ScheduledTask -TaskName "Note Sorter"
 ```
 
-Then drag `Note Capture.app` from `~/Applications/` to your Dock.
+**To remove the task later:**
+```powershell
+# Run as Administrator
+& "$env:APPDATA\note-sorter\Setup-NotesorterSchedule.ps1" -Remove
+```
+
+### 9. Create desktop shortcuts (optional)
+
+Create convenient desktop shortcuts for quick access:
+
+```powershell
+# Copy the shortcut creation script
+Copy-Item Create-DesktopShortcuts.ps1 -Destination "$env:APPDATA\note-sorter\"
+
+# Run it to create shortcuts on your desktop
+& "$env:APPDATA\note-sorter\Create-DesktopShortcuts.ps1"
+```
+
+This creates two shortcuts on your desktop:
+- **Note Sorter.lnk** — Run this to file notes into your vault
+- **Note Capture.lnk** — Run this to quickly capture a new note
+
+You can:
+- Double-click them to run
+- Right-click and pin to Start menu or taskbar
+- Drag them to your taskbar for quick access
 
 ## Configuration
 
@@ -123,9 +161,9 @@ Then drag `Note Capture.app` from `~/Applications/` to your Dock.
 | Field | Description | Default |
 |-------|-------------|---------|
 | `vault_path` | Absolute path to your Obsidian vault | *(required)* |
-| `drop_dir` | Folder to watch for new notes | `~/obsidian-drop` |
-| `filed_dir` | Where processed originals are backed up | `~/obsidian-drop/Filed` |
-| `config_dir` | Where config/logs/cache live | `~/.config/note-sorter` |
+| `drop_dir` | Folder to watch for new notes | `%USERPROFILE%\obsidian-drop` |
+| `filed_dir` | Where processed originals are backed up | `%USERPROFILE%\obsidian-drop\Filed` |
+| `config_dir` | Where config/logs/cache live | `%APPDATA%\note-sorter` |
 | `model` | Claude model to use | `claude-sonnet-4-20250514` |
 | `max_output_tokens` | Max tokens for Claude response | `1024` |
 | `api_key_env` | Environment variable name for API key | `ANTHROPIC_API_KEY` |
@@ -133,17 +171,19 @@ Then drag `Note Capture.app` from `~/Applications/` to your Dock.
 | `file_settle_seconds` | Skip files modified less than N seconds ago | `5` |
 | `log_level` | Logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`) | `INFO` |
 | `excluded_dirs` | Vault directories to exclude from indexing | `[".trash", ".obsidian", "templates", ".space"]` |
-| `editor` | Command to open markdown files for editing | `open -t` (macOS TextEdit) |
+| `editor` | Command to open markdown files for editing | `notepad` |
 | `dry_run` | Log actions without modifying the vault | `false` |
 
 ### Editor examples
 
 | Editor | `editor` value |
 |--------|---------------|
-| Sublime Text | `"/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl"` |
-| VS Code | `"code"` |
-| Vim | `"vim"` |
-| TextEdit (macOS) | `"open -t"` |
+| VS Code | `code` |
+| Notepad++ | `notepad++` |
+| Sublime Text | `subl` |
+| Vim | `vim` |
+| Neovim | `nvim` |
+| Notepad | `notepad` |
 
 ### filing-prompt.md
 
@@ -152,34 +192,27 @@ This is your voice telling Claude how you organize things. Edit it to match your
 ## File Structure
 
 ```
-~/.config/note-sorter/
+%APPDATA%\note-sorter\
     config.json              # Your configuration
     filing-prompt.md         # Your filing preferences
-    .env                     # API key (not committed to git)
+    .env                     # API key (optional, for Task Scheduler)
     vault-index.json         # Auto-generated cache
     note-sorter.log          # Activity log
 
-~/.local/bin/
-    note-sorter              # Main script
-    note-capture             # Quick-capture script
-
-~/obsidian-drop/             # Drop folder
-    Filed/                   # Backups of processed files
-
-~/Library/LaunchAgents/
-    com.note-sorter.plist    # Scheduled job
+%USERPROFILE%\obsidian-drop\
+    Filed\                   # Backups of processed files
 ```
 
 ## Logs
 
-All activity is logged to `~/.config/note-sorter/note-sorter.log`:
+All activity is logged to `%APPDATA%\note-sorter\note-sorter.log`:
 
 ```
 2026-02-14 11:51:55 INFO  Processing 1 file(s)
 2026-02-14 11:51:55 INFO  Analyzing: security-thoughts.md
 2026-02-14 11:52:01 INFO  Decision: new — Strategic note about data security
-2026-02-14 11:52:01 INFO  Created: 030. Resources/Strategy/Data Security Strategy.md
-2026-02-14 11:52:01 INFO  Moved original to: Filed/20260214-115201_security-thoughts.md
+2026-02-14 11:52:01 INFO  Created: 030. Resources\Strategy\Data Security Strategy.md
+2026-02-14 11:52:01 INFO  Moved original to: Filed\20260214-115201_security-thoughts.md
 ```
 
 Set `"log_level": "DEBUG"` to see full Claude API decisions including wikilinks and tags.
@@ -203,6 +236,83 @@ Appended content is added with a separator:
 
 Your appended content here...
 ```
+
+## Troubleshooting
+
+### "API key not found" error
+
+Make sure you've set the `ANTHROPIC_API_KEY` environment variable:
+
+```powershell
+# Check if it's set
+$env:ANTHROPIC_API_KEY
+
+# If empty, set it
+[Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", "sk-ant-...", "User")
+
+# Restart PowerShell for the change to take effect
+```
+
+Alternatively, create a `.env` file in `%APPDATA%\note-sorter\`:
+```
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+### "vault_path not set" error
+
+Edit your `config.json` and make sure `vault_path` is set to the absolute path of your Obsidian vault:
+
+```json
+{
+  "vault_path": "C:\\Users\\YourName\\Documents\\My Obsidian Vault",
+  ...
+}
+```
+
+### Task Scheduler task not running
+
+1. Check that you ran `Setup-NotesorterSchedule.ps1` as Administrator
+2. Verify the task exists:
+   ```powershell
+   Get-ScheduledTask -TaskName "Note Sorter"
+   ```
+3. Check the task's last run result in Task Scheduler:
+   - Open Task Scheduler
+   - Navigate to Task Scheduler Library
+   - Look for "Note Sorter"
+   - Check the "Last Run Result" column
+
+### Notes not being filed
+
+1. Check the log file: `%APPDATA%\note-sorter\note-sorter.log`
+2. Make sure `dry_run` is set to `false` in your config
+3. Verify your `filing-prompt.md` is configured correctly
+4. Check that your vault path is correct and accessible
+
+### Editor not opening
+
+Make sure the `editor` value in your config is correct:
+
+```powershell
+# Test if your editor is accessible
+& "code" --version  # For VS Code
+& "notepad++" --version  # For Notepad++
+```
+
+If the command doesn't work, use the full path:
+```json
+{
+  "editor": "C:\\Program Files\\Notepad++\\notepad++.exe"
+}
+```
+
+## Differences from macOS version
+
+- **Paths**: Uses Windows environment variables (`%APPDATA%`, `%USERPROFILE%`) instead of Unix-style paths (`~`, `~/.config`)
+- **Scheduling**: Uses Windows Task Scheduler instead of launchd
+- **Scripts**: All scripts are PowerShell instead of shell scripts
+- **Configuration**: Same JSON format, but with Windows-style paths
+- **API key**: Can be stored in environment variable or `.env` file (same as macOS)
 
 ## License
 

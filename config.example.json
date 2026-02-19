@@ -1,8 +1,8 @@
 {
-  "vault_path": "/path/to/your/Obsidian Vault",
-  "drop_dir": "~/obsidian-drop",
-  "filed_dir": "~/obsidian-drop/Filed",
-  "config_dir": "~/.config/note-sorter",
+  "vault_path": "C:\\Users\\YourUsername\\Documents\\My Obsidian Vault",
+  "drop_dir": "%USERPROFILE%\\obsidian-drop",
+  "filed_dir": "%USERPROFILE%\\obsidian-drop\\Filed",
+  "config_dir": "%APPDATA%\\note-sorter",
   "model": "claude-sonnet-4-20250514",
   "max_output_tokens": 1024,
   "api_key_env": "ANTHROPIC_API_KEY",
@@ -10,6 +10,6 @@
   "file_settle_seconds": 5,
   "log_level": "INFO",
   "excluded_dirs": [".trash", ".obsidian", "templates", ".space"],
-  "editor": "/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl",
+  "editor": "code",
   "dry_run": true
 }
