@@ -611,7 +611,19 @@ function Execute-Filing {
     }
     
     $timestampPrefix = $now.ToString("yyyyMMdd-HHmmss")
-    $filedName = "${timestampPrefix}_$($NotePath.Name)"
+    
+    # Rename file to expected format if needed
+    # Expected format: YYYY-MM-DD-HHmmss.md
+    $expectedPattern = '^\d{4}-\d{2}-\d{2}-\d{6}\.md$'
+    if ($NotePath.Name -notmatch $expectedPattern) {
+        $filedName = "${timestampPrefix}.md"
+        Write-Log "Renamed file from '$($NotePath.Name)' to '$filedName' (expected format: YYYY-MM-DD-HHmmss.md)" "DEBUG"
+    } else {
+        $filedName = $NotePath.Name
+    }
+    
+    # Add timestamp prefix to filed backup
+    $filedName = "${timestampPrefix}_$filedName"
     $filedDest = Join-Path $FiledDir $filedName
     
     if (-not $DryRun) {
