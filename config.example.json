@@ -3,7 +3,7 @@
   "drop_dir": "%USERPROFILE%\\obsidian-drop",
   "filed_dir": "%USERPROFILE%\\obsidian-drop\\Filed",
   "config_dir": "%APPDATA%\\note-sorter",
-  "model": "claude-sonnet-4-20250514",
+  "model": "claude-haiku-4-5-20251001",
   "max_output_tokens": 1024,
   "api_key_env": "ANTHROPIC_API_KEY",
   "connectivity_timeout_seconds": 5,

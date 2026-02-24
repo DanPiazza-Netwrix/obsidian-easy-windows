@@ -70,7 +70,7 @@ notepad "$env:APPDATA\note-sorter\config.json"
 **Optional settings:**
 - `drop_dir`: Where to watch for new notes (default: `%USERPROFILE%\obsidian-drop`)
 - `filed_dir`: Where to backup processed notes (default: `%USERPROFILE%\obsidian-drop\Filed`)
-- `model`: Claude model to use (default: `claude-sonnet-4-20250514`)
+- `model`: Claude model to use (default: `claude-haiku-4-5-20251001`)
 - `log_level`: Logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`)
 
 ### 5. Set your API key
@@ -164,7 +164,7 @@ You can:
 | `drop_dir` | Folder to watch for new notes | `%USERPROFILE%\obsidian-drop` |
 | `filed_dir` | Where processed originals are backed up | `%USERPROFILE%\obsidian-drop\Filed` |
 | `config_dir` | Where config/logs/cache live | `%APPDATA%\note-sorter` |
-| `model` | Claude model to use | `claude-sonnet-4-20250514` |
+| `model` | Claude model to use | `claude-haiku-4-5-20251001` |
 | `max_output_tokens` | Max tokens for Claude response | `1024` |
 | `api_key_env` | Environment variable name for API key | `ANTHROPIC_API_KEY` |
 | `connectivity_timeout_seconds` | Timeout for API reachability check | `5` |
