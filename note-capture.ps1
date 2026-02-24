@@ -32,11 +32,12 @@ function Load-Config {
     
     if (Test-Path $Path) {
         try {
-            $config = Get-Content $Path | ConvertFrom-Json
+            $configContent = Get-Content $Path -Raw
+            $config = $configContent | ConvertFrom-Json
             
             # Use user config values, fall back to defaults
-            $dropDir = $config.drop_dir ?? $defaults.drop_dir
-            $editor = $config.editor ?? $defaults.editor
+            $dropDir = if ($config.drop_dir) { $config.drop_dir } else { $defaults.drop_dir }
+            $editor = if ($config.editor) { $config.editor } else { $defaults.editor }
             
             # Expand environment variables
             $dropDir = [System.Environment]::ExpandEnvironmentVariables($dropDir)
@@ -49,6 +50,8 @@ function Load-Config {
         }
         catch {
             Write-Error "Error loading config: $_"
+            Write-Error "Config file: $Path"
+            Write-Error "Please check that the JSON is valid and paths use double backslashes (\\)"
             return $null
         }
     }
