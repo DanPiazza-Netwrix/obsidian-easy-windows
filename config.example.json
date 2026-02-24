@@ -10,6 +10,5 @@
   "file_settle_seconds": 5,
   "log_level": "INFO",
   "excluded_dirs": [".trash", ".obsidian", "templates", ".space"],
-  "editor": "code",
   "dry_run": true
 }

@@ -8,13 +8,15 @@ Powered by the Claude API for intelligent routing decisions.
 
 ## How It Works
 
-1. **Capture**: Run `note-capture.ps1` to create a new markdown file in your drop folder and open it in your editor.
-2. **Write**: Jot down your note, save, and close.
-3. **Auto-file**: Every 5 minutes, a Windows Task Scheduler job picks up the note, analyzes it with Claude, and:
-   - Files it into the correct folder in your Obsidian vault (or appends it to an existing note)
-   - Adds `[[wikilinks]]` to semantically related notes
-   - Adds YAML frontmatter (`created`, `modified`, `filed_by`)
+1. **Create**: Create a markdown file in your drop folder (e.g., `C:\Users\YourName\obsidian-drop\my-note.md`)
+2. **Write**: Add your note content and save the file.
+3. **File**: Run `note-sorter.ps1` to analyze the note with Claude and:
+   - File it into the correct folder in your Obsidian vault (or append it to an existing note)
+   - Add `[[wikilinks]]` to semantically related notes
+   - Add YAML frontmatter (`created`, `modified`, `filed_by`)
 4. **Backup**: The original file is moved to a `Filed\` subfolder as a backup.
+
+**Optional**: Set up a Windows Task Scheduler job to run `note-sorter.ps1` automatically every 5 minutes.
 
 ## Requirements
 
@@ -44,12 +46,11 @@ New-Item -ItemType Directory -Path "$env:USERPROFILE\obsidian-drop\Filed" -Force
 ```powershell
 # Option A: Copy to AppData (recommended)
 Copy-Item note-sorter.ps1 -Destination "$env:APPDATA\note-sorter\"
-Copy-Item note-capture.ps1 -Destination "$env:APPDATA\note-sorter\"
 Copy-Item Setup-NotesorterSchedule.ps1 -Destination "$env:APPDATA\note-sorter\"
 
 # Option B: Copy to a custom location (e.g., C:\Tools\note-sorter)
 New-Item -ItemType Directory -Path "C:\Tools\note-sorter" -Force
-Copy-Item note-sorter.ps1, note-capture.ps1, Setup-NotesorterSchedule.ps1 -Destination "C:\Tools\note-sorter\"
+Copy-Item note-sorter.ps1, Setup-NotesorterSchedule.ps1 -Destination "C:\Tools\note-sorter\"
 ```
 
 ### 4. Configure
@@ -132,23 +133,24 @@ Get-ScheduledTask -TaskName "Note Sorter"
 & "$env:APPDATA\note-sorter\Setup-NotesorterSchedule.ps1" -Remove
 ```
 
-### 9. Running the scripts
+### 9. Running the sorter
 
-Run the scripts directly from PowerShell 7 (recommended):
+Run the sorter from PowerShell 7 to file your notes:
 
 ```powershell
-# Capture a new note
-& "$env:APPDATA\note-sorter\note-capture.ps1"
-
 # File notes into your vault
 & "$env:APPDATA\note-sorter\note-sorter.ps1"
 ```
 
-Or if you've copied them to a custom location:
+Or if you've copied it to a custom location:
 ```powershell
-& "C:\Tools\note-sorter\note-capture.ps1"
 & "C:\Tools\note-sorter\note-sorter.ps1"
 ```
+
+**Workflow:**
+1. Create a markdown file in `%USERPROFILE%\obsidian-drop\` (or your configured `drop_dir`)
+2. Run the command above to file it into your vault
+3. (Optional) Set up a scheduled task to run this automatically every 5 minutes
 
 ## Configuration
 
@@ -167,19 +169,7 @@ Or if you've copied them to a custom location:
 | `file_settle_seconds` | Skip files modified less than N seconds ago | `5` |
 | `log_level` | Logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`) | `INFO` |
 | `excluded_dirs` | Vault directories to exclude from indexing | `[".trash", ".obsidian", "templates", ".space"]` |
-| `editor` | Command to open markdown files for editing | `notepad` |
 | `dry_run` | Log actions without modifying the vault | `false` |
-
-### Editor examples
-
-| Editor | `editor` value |
-|--------|---------------|
-| VS Code | `code` |
-| Notepad++ | `notepad++` |
-| Sublime Text | `subl` |
-| Vim | `vim` |
-| Neovim | `nvim` |
-| Notepad | `notepad` |
 
 ### filing-prompt.md
 
