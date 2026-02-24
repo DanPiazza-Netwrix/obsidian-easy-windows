@@ -8,7 +8,7 @@ Powered by the Claude API for intelligent routing decisions.
 
 ## How It Works
 
-1. **Create**: Create a markdown file in your drop folder (e.g., `C:\Users\YourName\obsidian-drop\my-note.md`)
+1. **Create**: Create a markdown (`.md`) or text (`.txt`) file in your drop folder (e.g., `C:\Users\YourName\obsidian-drop\my-note.md`)
 2. **Write**: Add your note content and save the file.
 3. **File**: Run `note-sorter.ps1` to analyze the note with Claude and:
    - File it into the correct folder in your Obsidian vault (or append it to an existing note)
@@ -17,6 +17,8 @@ Powered by the Claude API for intelligent routing decisions.
 4. **Backup**: The original file is moved to a `Filed\` subfolder as a backup.
 
 **Optional**: Set up a Windows Task Scheduler job to run `note-sorter.ps1` automatically every 5 minutes.
+
+**Note**: Text files (`.txt`) are automatically converted to markdown format with a heading based on the filename.
 
 ## Requirements
 

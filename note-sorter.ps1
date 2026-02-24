@@ -322,7 +322,7 @@ function Get-DropFiles {
     $now = Get-Date
     $files = @()
     
-    Get-ChildItem -Path $DropDir -Filter "*.md" -File | Sort-Object LastWriteTime | ForEach-Object {
+    Get-ChildItem -Path $DropDir -Filter "*" -File | Where-Object { $_.Extension -in @(".md", ".txt") } | Sort-Object LastWriteTime | ForEach-Object {
         # Skip files in Filed subdirectory
         if ($_.Directory.FullName -eq $FiledDir) {
             return
@@ -730,7 +730,15 @@ function Main {
     foreach ($file in $files) {
         Write-Log "Analyzing: $($file.Name)"
         
+        # Read file content
         $noteContent = Get-Content $file.FullName -Raw
+        
+        # Convert .txt files to markdown
+        if ($file.Extension -eq ".txt") {
+            Write-Log "Converting .txt to markdown format" "DEBUG"
+            $noteContent = "# $([System.IO.Path]::GetFileNameWithoutExtension($file.Name))`n`n$noteContent"
+        }
+        
         $decision = Invoke-ClaudeAnalysis `
             -NoteContent $noteContent `
             -NoteFilename $file.Name `
