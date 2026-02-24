@@ -90,6 +90,41 @@ function Setup-Logging {
     
     $script:LogPath = Join-Path $logDir "note-sorter.log"
     $script:LogLevel = $Config.log_level
+    $script:LogMaxSize = 1MB  # 1 megabyte
+    $script:LogMaxFiles = 10  # Keep last 10 rotated logs
+}
+
+function Rotate-LogFile {
+    if (-not (Test-Path $script:LogPath)) {
+        return
+    }
+    
+    $file = Get-Item $script:LogPath
+    if ($file.Length -lt $script:LogMaxSize) {
+        return
+    }
+    
+    # Log file exceeds size limit, rotate it
+    $logDir = Split-Path $script:LogPath
+    $logName = [System.IO.Path]::GetFileNameWithoutExtension($script:LogPath)
+    $logExt = [System.IO.Path]::GetExtension($script:LogPath)
+    
+    # Find the next available number
+    $nextNum = 1
+    while (Test-Path (Join-Path $logDir "$logName.$nextNum$logExt")) {
+        $nextNum++
+    }
+    
+    # Rename current log to numbered version
+    $rotatedPath = Join-Path $logDir "$logName.$nextNum$logExt"
+    Rename-Item -Path $script:LogPath -NewName "$logName.$nextNum$logExt" -Force
+    
+    # Delete old logs if we exceed max files
+    $logFiles = @(Get-ChildItem -Path $logDir -Filter "$logName.*$logExt" | Sort-Object Name -Descending)
+    if ($logFiles.Count -gt $script:LogMaxFiles) {
+        $filesToDelete = $logFiles | Select-Object -Skip $script:LogMaxFiles
+        $filesToDelete | Remove-Item -Force
+    }
 }
 
 function Write-Log {
@@ -107,6 +142,9 @@ function Write-Log {
     # Write to file
     if ($script:LogPath) {
         Add-Content -Path $script:LogPath -Value $logEntry
+        
+        # Check if rotation is needed
+        Rotate-LogFile
     }
 }
 

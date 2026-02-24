@@ -208,6 +208,16 @@ All activity is logged to `%APPDATA%\note-sorter\note-sorter.log`:
 
 Set `"log_level": "DEBUG"` to see full Claude API decisions including wikilinks and tags.
 
+### Log Rotation
+
+The log file automatically rotates when it exceeds 1 MB. The script keeps the last 10 rotated log files:
+- `note-sorter.log` — Current log file
+- `note-sorter.1.log` — Previous log file
+- `note-sorter.2.log` — Older log file
+- ... and so on up to `note-sorter.10.log`
+
+Older logs are automatically deleted to prevent disk space issues.
+
 ## How Notes Get Filed
 
 When Claude analyzes a note, it returns a JSON decision:
