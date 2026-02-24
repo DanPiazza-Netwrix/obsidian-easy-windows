@@ -14,14 +14,19 @@
 .PARAMETER DryRun
     If specified, logs actions without modifying the vault.
 
+.PARAMETER Summarize
+    If specified, Claude will summarize and reformat notes for readability and conciseness.
+
 .EXAMPLE
     .\note-sorter.ps1
     .\note-sorter.ps1 -DryRun
+    .\note-sorter.ps1 -Summarize
 #>
 
 param(
     [string]$ConfigPath = "$env:APPDATA\note-sorter\config.json",
-    [switch]$DryRun
+    [switch]$DryRun,
+    [switch]$Summarize
 )
 
 # ============================================================================
@@ -60,12 +65,14 @@ Your job is to analyze the note and return a JSON decision with these fields:
 - "target_note": the exact name of the existing note to append to (for "append" action only)
 - "wikilinks": array of existing note names that are semantically related to this content
 - "suggested_tags": array of tags to add to frontmatter (use the vault's existing tag style)
+- "content": the note content, optionally summarized and reformatted for readability (only if summarize mode is enabled)
 
 Rules:
 - Only suggest "append" if the new content is clearly a continuation or addition to a specific existing note. When in doubt, create a new note.
 - For the folder, use existing folder paths from the vault index. Do not invent new folders.
 - For wikilinks, only suggest notes that actually exist in the index. Focus on semantic relevance, not just keyword matching.
 - Limit wikilinks to the 5-8 most relevant. Do not over-link.
+- If summarize mode is enabled, improve the note's readability and conciseness while preserving all important information. Use clear formatting, bullet points, and structure as appropriate.
 - Return ONLY valid JSON. No markdown code fences. No commentary outside the JSON.
 "@
 
@@ -307,8 +314,15 @@ function Invoke-ClaudeAnalysis {
         [string]$FilingPrompt,
         [string]$Model,
         [int]$MaxTokens,
-        [string]$ApiKey
+        [string]$ApiKey,
+        [bool]$Summarize = $false
     )
+    
+    $summarizeInstruction = if ($Summarize) {
+        "IMPORTANT: Please also summarize and reformat the note content for improved readability and conciseness. Include the reformatted content in the 'content' field of your JSON response."
+    } else {
+        ""
+    }
     
     $userMessage = @"
 ## My Filing Preferences
@@ -324,6 +338,8 @@ $VaultIndexText
 Filename: $NoteFilename
 
 $NoteContent
+
+$summarizeInstruction
 "@
     
     Write-Log "Sending to Claude: $($userMessage.Length) chars" "DEBUG"
@@ -526,6 +542,12 @@ function Execute-Filing {
     
     # Prepare content with wikilinks
     $_, $body = Strip-ExistingFrontmatter $NoteContent
+    
+    # Use summarized content if available
+    if ($Decision.content) {
+        $body = $Decision.content
+    }
+    
     $bodyWithLinks = Insert-Wikilinks $body $Decision.wikilinks
     
     if ($Decision.action -eq "new") {
@@ -666,7 +688,8 @@ function Main {
             -FilingPrompt $filingPrompt `
             -Model $config.model `
             -MaxTokens $config.max_output_tokens `
-            -ApiKey $apiKey
+            -ApiKey $apiKey `
+            -Summarize $Summarize
         
         if (-not $decision) {
             Write-Log "Failed to get decision for $($file.Name)" "ERROR"

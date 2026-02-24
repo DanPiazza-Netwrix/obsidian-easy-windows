@@ -140,17 +140,22 @@ Run the sorter from PowerShell 7 to file your notes:
 ```powershell
 # File notes into your vault
 & "$env:APPDATA\note-sorter\note-sorter.ps1"
+
+# File notes and have Claude summarize/reformat them for readability
+& "$env:APPDATA\note-sorter\note-sorter.ps1" -Summarize
 ```
 
 Or if you've copied it to a custom location:
 ```powershell
 & "C:\Tools\note-sorter\note-sorter.ps1"
+& "C:\Tools\note-sorter\note-sorter.ps1" -Summarize
 ```
 
 **Workflow:**
 1. Create a markdown file in `%USERPROFILE%\obsidian-drop\` (or your configured `drop_dir`)
 2. Run the command above to file it into your vault
-3. (Optional) Set up a scheduled task to run this automatically every 5 minutes
+3. (Optional) Use `-Summarize` flag to have Claude improve readability and conciseness
+4. (Optional) Set up a scheduled task to run this automatically every 5 minutes
 
 ## Configuration
 
