@@ -24,9 +24,10 @@
 #>
 
 param(
-    [string]$ConfigPath = "$env:APPDATA\note-sorter\config.json",
-    [switch]$DryRun,
-    [switch]$Summarize
+     [string]$ConfigPath = "$env:APPDATA\note-sorter\config.json",
+     [switch]$DryRun,
+     [switch]$Summarize,
+     [switch]$Debug
 )
 
 # ============================================================================
@@ -60,14 +61,15 @@ You will receive:
 Your job is to analyze the note and return a JSON decision with these fields:
 - "action": either "new" (create as a new note) or "append" (add to an existing note)
 - "reasoning": 1-2 sentences explaining your decision
-- "folder": the destination folder path relative to vault root (for "new" action only)
-- "filename": the filename to use WITHOUT .md extension (for "new" action only)
-- "target_note": the exact name of the existing note to append to (for "append" action only)
+- "folder": the destination folder path relative to vault root (REQUIRED for ALL actions)
+- "filename": the filename to use WITHOUT .md extension (REQUIRED for ALL actions)
+- "target_note": the exact name of the existing note to append to (REQUIRED for "append" action)
 - "wikilinks": array of existing note names that are semantically related to this content
 - "suggested_tags": array of tags to add to frontmatter (use the vault's existing tag style)
 - "content": the note content, optionally summarized and reformatted for readability (only if summarize mode is enabled)
 
 Rules:
+- CRITICAL: You MUST always include folder and filename fields in your response, regardless of whether action is "new" or "append". These fields are required for fallback handling if the append target does not exist.
 - Only suggest "append" if the new content is clearly a continuation or addition to a specific existing note. When in doubt, create a new note.
 - For the folder, use existing folder paths from the vault index. Do not invent new folders.
 - For wikilinks, only suggest notes that actually exist in the index. Focus on semantic relevance, not just keyword matching.
@@ -128,25 +130,30 @@ function Rotate-LogFile {
 }
 
 function Write-Log {
-    param(
-        [string]$Message,
-        [string]$Level = "INFO"
-    )
-    
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $logEntry = "$timestamp $($Level.PadRight(5)) $Message"
-    
-    # Write to console
-    Write-Host $logEntry
-    
-    # Write to file
-    if ($script:LogPath) {
-        Add-Content -Path $script:LogPath -Value $logEntry
-        
-        # Check if rotation is needed
-        Rotate-LogFile
-    }
-}
+     param(
+         [string]$Message,
+         [string]$Level = "INFO"
+     )
+     
+     # Skip DEBUG messages if log level is not DEBUG
+     if ($Level -eq "DEBUG" -and $script:LogLevel -ne "DEBUG") {
+         return
+     }
+     
+     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+     $logEntry = "$timestamp $($Level.PadRight(5)) $Message"
+     
+     # Write to console
+     Write-Host $logEntry
+     
+     # Write to file
+     if ($script:LogPath) {
+         Add-Content -Path $script:LogPath -Value $logEntry
+         
+         # Check if rotation is needed
+         Rotate-LogFile
+     }
+ }
 
 # ============================================================================
 # Configuration Loading
@@ -417,18 +424,24 @@ $summarizeInstruction
 }
 
 function Parse-ClaudeResponse {
-    param([string]$Text)
-    
-    # Remove markdown code fences if present
-    $text = $text -replace '```json\s*', '' -replace '```\s*$', ''
-    
-    try {
-        return $text | ConvertFrom-Json
-    }
-    catch {
-        Write-Log "Failed to parse Claude response: $_" "ERROR"
-        return $null
-    }
+     param([string]$Text)
+     
+     # Log raw response for debugging
+     Write-Log "Raw Claude response: $Text" "DEBUG"
+     
+     # Remove markdown code fences if present
+     $text = $text -replace '```json\s*', '' -replace '```\s*$', ''
+     
+     try {
+         $parsed = $text | ConvertFrom-Json
+         Write-Log "Parsed decision: action=$($parsed.action), folder=$($parsed.folder), filename=$($parsed.filename)" "DEBUG"
+         return $parsed
+     }
+     catch {
+         Write-Log "Failed to parse Claude response: $_" "ERROR"
+         Write-Log "Text that failed to parse: $Text" "DEBUG"
+         return $null
+     }
 }
 
 # ============================================================================
@@ -457,15 +470,24 @@ function Validate-Decision {
     }
     
     if ($action -eq "append") {
-        $target = if ($Decision.target_note) { $Decision.target_note } else { "" }
-        if ($target -notin $noteNames) {
-            Write-Log "Append target '$target' not found, switching to 'new'" "WARNING"
-            $action = "new"
-        }
-        else {
-            $Decision | Add-Member -NotePropertyName "target_path" -NotePropertyValue $notePaths[$target] -Force
-        }
-    }
+         $target = if ($Decision.target_note) { $Decision.target_note } else { "" }
+         if ($target -notin $noteNames) {
+             Write-Log "Append target '$target' not found, switching to 'new'" "WARNING"
+             $action = "new"
+             # Ensure folder and filename are set when switching from append to new
+             # Use a timestamp-based filename to avoid collisions
+             if (-not $Decision.folder) {
+                 $Decision | Add-Member -NotePropertyName "folder" -NotePropertyValue "030. Resources/Meetings" -Force
+             }
+             if (-not $Decision.filename) {
+                 $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+                 $Decision | Add-Member -NotePropertyName "filename" -NotePropertyValue $timestamp -Force
+             }
+         }
+         else {
+             $Decision | Add-Member -NotePropertyName "target_path" -NotePropertyValue $notePaths[$target] -Force
+         }
+     }
     
     if ($action -eq "new") {
         $folder = if ($Decision.folder) { $Decision.folder } else { "Inbox" }
@@ -691,6 +713,11 @@ function Main {
     
     # Setup logging
     Setup-Logging $config
+    
+    # Set log level if Debug flag is provided
+    if ($Debug) {
+        $script:LogLevel = "DEBUG"
+    }
     
     # Load .env fallback
     Load-EnvFile $config.config_dir
