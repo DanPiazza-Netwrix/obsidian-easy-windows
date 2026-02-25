@@ -51,8 +51,8 @@ Claude returns a JSON object with these fields:
 {
   "action": "new" | "append",
   "reasoning": "1-2 sentence explanation",
-  "folder": "destination/folder/path",           // for "new" action only
-  "filename": "Note Title",                      // for "new" action only (no .md extension)
+  "folder": "destination/folder/path",           // REQUIRED for ALL actions (fallback if append target missing)
+  "filename": "Note Title",                      // REQUIRED for ALL actions (fallback if append target missing, no .md extension)
   "target_note": "Existing Note Name",           // for "append" action only
   "wikilinks": ["Note 1", "Note 2"],             // existing notes to link
   "suggested_tags": ["#tag1", "#tag2"],          // tags for frontmatter
@@ -62,12 +62,13 @@ Claude returns a JSON object with these fields:
 
 ### Key Constraints Claude Must Follow
 
-1. **Only suggest existing folders**: Claude must use folder paths from the vault index; never invent new folders
-2. **Only link existing notes**: Wikilinks must reference notes that actually exist in the vault
-3. **Limit wikilinks**: Suggest 5-8 most relevant links, not exhaustive linking
-4. **Append sparingly**: Only suggest "append" if content is clearly a continuation of an existing note
-5. **Respect filing rules**: Honor user-defined rules in `filing-prompt.md` (e.g., never file to Readwise, templates, or journal folders)
-6. **Return valid JSON only**: No markdown code fences, no commentary outside JSON
+1. **ALWAYS return folder and filename**: These fields are REQUIRED for ALL actions (new and append). They serve as fallback values if an append target doesn't exist.
+2. **Only suggest existing folders**: Claude must use folder paths from the vault index; never invent new folders
+3. **Only link existing notes**: Wikilinks must reference notes that actually exist in the vault
+4. **Limit wikilinks**: Suggest 5-8 most relevant links, not exhaustive linking
+5. **Append sparingly**: Only suggest "append" if content is clearly a continuation of an existing note
+6. **Respect filing rules**: Honor user-defined rules in `filing-prompt.md` (e.g., never file to Readwise, templates, or journal folders)
+7. **Return valid JSON only**: No markdown code fences, no commentary outside JSON
 
 ### API Call Details
 
@@ -138,7 +139,8 @@ When invoked with `-Summarize` flag, Claude is instructed to:
 
 - Validates Claude's decision against vault state
 - Ensures target folders exist (falls back to "Inbox" if not)
-- Ensures append targets exist in vault
+- Ensures append targets exist in vault (switches to "new" if missing)
+- When switching from append to new, uses Claude's provided folder/filename as fallback
 - Sanitizes filenames
 - Validates wikilinks against vault index
 - Logs dropped/invalid suggestions
@@ -330,6 +332,7 @@ Before suggesting code changes:
 - Claude suggested appending to a note that doesn't exist
 - Validation should catch this and switch to "new" action
 - Check vault index includes the target note
+- **CRITICAL FIX (2026-02-25)**: Claude must ALWAYS return `folder` and `filename` fields, even when suggesting "append". If these fields are missing when the append target doesn't exist, the note will default to "Untitled.md" in Inbox. The system prompt now requires these fields for ALL actions as fallback handling.
 
 #### "Invalid JSON response"
 
