@@ -230,6 +230,7 @@ Creates/removes Windows Task Scheduler task to run `note-sorter.ps1` every 5 min
 4. **Skip validation**: Always validate Claude's decision before executing
 5. **Ignore dry-run mode**: Respect the `$DryRun` flag in all file operations
 6. **Hardcode paths**: Always use environment variables and config values
+7. **Write Properties into notes**: Never add Obsidian Properties (YAML frontmatter properties) to notes. Keep notes clean without metadata properties.
 
 ### Always Do This
 

@@ -75,6 +75,7 @@ Rules:
 - For wikilinks, only suggest notes that actually exist in the index. Focus on semantic relevance, not just keyword matching.
 - Limit wikilinks to the 5-8 most relevant. Do not over-link.
 - If summarize mode is enabled, improve the note's readability and conciseness while preserving all important information. Use clear formatting, bullet points, and structure as appropriate.
+- Never write Properties into notes. Do not add Obsidian Properties (YAML frontmatter properties) to notes. Keep notes clean without metadata properties.
 - Return ONLY valid JSON. No markdown code fences. No commentary outside the JSON.
 "@
 
