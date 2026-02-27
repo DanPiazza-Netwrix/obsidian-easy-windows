@@ -45,7 +45,6 @@ Within **010. Projects**:
 
 ## Tag Style
 
-- I use emoji-based hierarchical tags: `#🗃/🌻` for permanent notes, `#📥/📚` for books
 - Only add tags if the content clearly fits an existing tag pattern
 - When unsure, **omit tags** rather than inventing new ones
 
